@@ -2,16 +2,16 @@ from schemas import RiskDecision
 
 
 def measure_risk(state: dict) -> dict:
-    workflow_type = state["workflow_type"]
-    policy_decision = state.get("policy_decision", {})
-    order = state.get("order", {})
+    workflow_type = state.workflow_type
+    policy_decision = state.policy_decision
+    order = state.order
 
     risk_flags = []
     escalation_required = False
     risk_level = "low"
     reason = "No escalation rule triggered."
 
-    if workflow_type == "unsupported_policy" or workflow_type == "unsupported_request":
+    if workflow_type == "unsupported":
         escalation_required = True
         risk_level = "medium"
         risk_flags.append("unsupported_workflow")
@@ -23,7 +23,7 @@ def measure_risk(state: dict) -> dict:
         risk_flags.append("mising_package_claim")
         reason = "Missing package claim requires human review before refund or replacement"
     
-    if order is not None and order.get("total", 0) > 500:
+    if order is not None and order.total > 500:
         escalation_required = True
         risk_level = "high"
         risk_flags.append("high_value_order")

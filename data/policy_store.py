@@ -1,26 +1,32 @@
 POLICIES = {
-  "returns": {
-    "policy_id": "returns_v1",
-    "version": "1.0",
-    "last_updated": "2026-05-30",
-    "summary": "Standard items can be returned within 30 days of delivery if unused and in original condition.",
-    "structured_rules": {
-      "standard_window_days": 30,
-      "premium_window_days": 45,
-      "return_shipping_covered": ["defective", "wrong_item_shipped", "our_error"],
-      "non_returnable_categories": ["custom_orders", "clearance", "opened_supplements"]
-    },
-    "eligibility": [
-      "Must be unused with original tags and packaging attached",
-      "Apparel must not show signs of wear",
-      "Equipment must not be assembled or used"
-    ],
-    "customer_steps": [
-      "Contact support with order number",
-      "Receive return shipping label",
-      "Ship item back within 14 days of receiving label"
-    ],
-    "cross_references": ["damaged_items"]
+"returns": {
+"policy_id": "returns_v1",
+  "version": "1.1",
+  "last_updated": "2026-06-01",
+  "summary": "Standard items can be returned within 30 days of delivery if unused and in original condition.",
+  "structured_rules": {
+    "standard_window_days": 30,
+    "premium_window_days": 45,
+    
+    "non_returnable_item_types": ["clearance", "custom"],
+    "non_returnable_statuses": ["processing", "returned", "cancelled"],
+    
+    "denial_reasons": {
+      "non_returnable_item": "Clearance and custom orders are not eligible for return.",
+      "past_return_window": "The return window has expired.",
+      "invalid_status": "This order cannot be returned in its current status."
+    }
+  },
+  "eligibility": [
+    "Must be unused with original tags and packaging attached",
+    "Apparel must not show signs of wear",
+    "Equipment must not be assembled or used"
+  ],
+  "customer_steps": [
+    "Contact support with order number",
+    "Receive return shipping label",
+    "Ship item back within 14 days of receiving label"
+  ],
   },
 
   "shipping": {
@@ -40,8 +46,8 @@ POLICIES = {
     ]
   },
 
-  "cancellation": {
-    "policy_id": "cancellation_v1",
+  "cancellations": {
+    "policy_id": "cancellations_v1",
     "version": "1.0",
     "last_updated": "2026-05-30",
     "summary": "Orders can be cancelled within 4 hours of placement. Processed orders may incur a restocking fee.",

@@ -18,7 +18,7 @@ EVAL_CASES = [
         "expected": {
             "workflow_type": "returns_request",
             "decision": "denied",
-            "recommended_action": "explain_not_delivered",
+            "recommended_action": "explain_non_returnable_status",
         },
     },
     {
@@ -27,7 +27,7 @@ EVAL_CASES = [
         "expected": {
             "workflow_type": "returns_request",
             "decision": "denied",
-            "recommended_action": "explain_already_returned",
+            "recommended_action": "explain_non_returnable_status",
         },
     },
     {
@@ -81,7 +81,7 @@ EVAL_CASES = [
         "expected": {
             "workflow_type": "cancellation_request",
             "decision": "denied",
-            "recommended_action": "cannot_cancel_shipped_order",
+            "recommended_action": "explain_cannot_cancel_shipped_order",
         },
     },
     {
@@ -89,7 +89,7 @@ EVAL_CASES = [
         "message": "What is your return policy?",
         "expected": {
             "workflow_type": "returns_policy",
-            "decision": "general_returns_policy",
+            "decision": "explain_general_returns_policy",
             "recommended_action": "generate_response",
         },
     },
@@ -106,12 +106,49 @@ EVAL_CASES = [
         "name": "unsupported_question",
         "message": "Can you reset my Netflix password?",
         "expected": {
-            "workflow_type": "unsupported_policy",
-            "decision": "general_unsupported_policy",
+            "workflow_type": "unsupported",
+            "decision": "explain_general_unsupported_policy",
             "recommended_action": "generate_response",
         },
     },
+    {
+        "name": "damaged_policy",
+        "message": "what happens if my order arrives damaged?",
+        "expected": {
+            "workflow_type": "damaged_items_policy",
+            "decision": "explain_general_damaged_items_policy",
+            "recommended_action": "generate_response",
+        },
+    },
+        {
+        "name": "item_damaged",
+        "message": "My order PG-1001 arrived broken",
+        "expected": {
+            "workflow_type": "damaged_items_request",
+            "decision": "denied",
+            "recommended_action": "explain_outside_damaged_report_window",
+        },
+    },
+    {
+        "name": "missing_policy",
+        "message": "what happens if my order says delivered but is missing?",
+        "expected": {
+            "workflow_type": "missing_package_policy",
+            "decision": "explain_general_missing_package_policy",
+            "recommended_action": "generate_response",
+        },
+    },
+    {
+        "name": "missing_package",
+        "message": "My order PG-1001 never arrived",
+        "expected": {
+            "workflow_type": "missing_package_request",
+            "decision": "approved",
+            "recommended_action": "explain_missing_package_refund_approved",
+        },
+    }
 ]
+
 
 # ====================== EVALUATION LOOP ======================
 
@@ -126,10 +163,12 @@ for i, case in enumerate(EVAL_CASES):
     })
 
     policy_decision = result.get("policy_decision") or {}
+    risk_decision = result.get("risk_decision") or {}
 
     print(f"Workflow Type     : {result.get('workflow_type')}")
     print(f"Decision          : {policy_decision.get('decision')}")
     print(f"Recommended Action: {policy_decision.get('recommended_action')}")
+    print(f"Risk Decision : {risk_decision}")
     print(f"Response Preview  : {result.get('response')[:350]}...\n")
 
     try:

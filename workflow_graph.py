@@ -1,7 +1,7 @@
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 
-from planner import classify_workflow
+from planner import classify_workflow, route_after_planner
 from workers.order_worker import lookup_order
 from workers.policy_worker import apply_policy
 from workers.risk_worker import measure_risk
@@ -23,6 +23,9 @@ def order_node(state: WorkflowState):
 def policy_node(state: WorkflowState):
     return apply_policy(state)
 
+def risk_node(state: WorkflowState):
+    return measure_risk(state)
+
 
 def response_node(state: WorkflowState):
     return craft_response(state)
@@ -36,13 +39,22 @@ graph = StateGraph(WorkflowState)
 graph.add_node("planner", planner_node)
 graph.add_node("order", order_node)
 graph.add_node("policy", policy_node)
+graph.add_node("risk", risk_node)
 graph.add_node("response", response_node)
 
 # Updated edges - skipping risk for now
 graph.add_edge(START, "planner")
-graph.add_edge("planner", "order")
+graph.add_conditional_edges(
+    "planner",
+    route_after_planner,
+    {
+        "order": "order",
+        "policy": "policy"
+    }
+)
 graph.add_edge("order", "policy")
-graph.add_edge("policy", "response")   # ← direct to response
+graph.add_edge("policy", "risk")
+graph.add_edge("risk", "response")
 graph.add_edge("response", END)
 
 workflow_app = graph.compile()

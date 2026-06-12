@@ -1,4 +1,5 @@
 import re
+from schemas import WorkflowState
 
 ACTION_SIGNALS = [
     "can i",
@@ -20,7 +21,9 @@ POLICY_SIGNALS = [
     "can you",
     "what's",
     "whats",
-    "do you"
+    "do you",
+    "what happens",
+    "if"
 ]
 
 DOMAIN_SIGNALS = {
@@ -153,9 +156,8 @@ def detect_intent(text: str) -> str:
     return "policy"
 
 def build_workflow_type(policy_domain: str, intent: str) -> str:
-    if policy_domain == "unknown":
+    if policy_domain == "unsupported":
         return "unsupported"
-
     if intent == "policy":
         return f"{policy_domain}_policy"
 
@@ -175,6 +177,12 @@ def classify_workflow(message: str) -> dict:
         "missing_fields": ["order_id"] if intent == "action" and not order_id else [],
         **domain_result
     }
+
+def route_after_planner(state: WorkflowState):
+    if state.requires_order:
+        return "order"
+    else: 
+        return "policy"
     
 if __name__ == "__main__":
     test_messages = [

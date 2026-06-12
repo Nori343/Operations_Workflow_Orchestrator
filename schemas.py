@@ -49,7 +49,7 @@ class RiskDecision(BaseModel):
     risk_level: str
     reason: str
     risk_flags: list[str] = Field(default_factory=list) 
-    recommended_action: str
+   # recommended_action: str
 
 class EvaluationResult(BaseModel):
     passed: bool
@@ -60,9 +60,11 @@ class WorkflowState(BaseModel):
     ticket_id: Optional[str] = None
     customer_message: str = ""
     
+    requires_order: bool = Field(default=False)
     order_id: Optional[str] = None
     workflow_type: Optional[str] = None
     policy_domain: Optional[str] = None
+    has_photo: bool = Field(default=False)
     
     # Worker outputs
     order: Optional[Order] = Field(default=None)
