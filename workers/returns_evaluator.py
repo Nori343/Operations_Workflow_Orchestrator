@@ -1,14 +1,15 @@
-from schemas import Order, WorkflowState, PolicyDecision
+from schemas import Order, PolicyDecision
+from state.workflow_state import WorkflowState
 from datetime import datetime, timedelta
 from data.policy_store import POLICIES
 
 def check_return_window(order:dict, window_days:int): #check window for returns for an order
-        delivered_at = order.delivered_at
+        delivered_at = order.get("delivered_at")
         if not delivered_at:
              return False
         try:
             if isinstance(delivered_at, str):
-                dt = datetime.strptime(delivered_at, "%Y-%m-%d")
+                dt = datetime.fromisoformat(delivered_at)
             else:
                 dt = delivered_at
             now = datetime.now().date()
@@ -33,7 +34,7 @@ def evaluate_returns_eligibility(order: Order, rules: dict) -> dict:
     }
 
     # 1. Status Check
-    if order.status in rules.get("non_returnable_statuses", []):
+    if order.get("status") in rules.get("non_returnable_statuses", []):
         result.update({
             "decision": "denied",
             "recommended_action": "explain_non_returnable_status",
@@ -42,7 +43,7 @@ def evaluate_returns_eligibility(order: Order, rules: dict) -> dict:
         return result
 
     # 2. Clearance / Custom Check
-    if order.contains_clearance_items or order.contains_custom_items:
+    if order.get("contains_clearance_items") or order.get("contains_custom_items"):
         result.update({
             "decision": "denied",
             "recommended_action": "explain_non_eligible_items",
@@ -51,7 +52,7 @@ def evaluate_returns_eligibility(order: Order, rules: dict) -> dict:
         return result
 
     # 3. Return Window Check
-    window_days = rules["premium_window_days"] if order.is_premium_member else rules["standard_window_days"]
+    window_days = rules["premium_window_days"] if order.get("is_premium_member") else rules["standard_window_days"]
     
     if not check_return_window(order, window_days):
         result.update({
@@ -70,7 +71,7 @@ def evaluate_returns(state: WorkflowState) -> WorkflowState:
     policy = POLICIES.get("returns", {})
     rules = policy.get("structured_rules", {})
     
-    if not state.order:
+    if not state.get("order"):
         decision = PolicyDecision(
             decision="needs_more_info",
             recommended_action="request_order_id",
@@ -79,7 +80,7 @@ def evaluate_returns(state: WorkflowState) -> WorkflowState:
         ).model_dump()
     else:
         # Delegate to evaluator
-        evaluation = evaluate_returns_eligibility(state.order, rules)
+        evaluation = evaluate_returns_eligibility(state.get("order"), rules)
         
         # Build final PolicyDecision
         decision = PolicyDecision(

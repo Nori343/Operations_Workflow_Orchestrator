@@ -1,14 +1,14 @@
-
-from schemas import WorkflowState, PolicyDecision, Order
+from state.workflow_state import WorkflowState
+from schemas import PolicyDecision, Order
 from data.policy_store import POLICIES
 from datetime import datetime
 
-def check_cancellation_window(order: Order) -> bool:
+def check_cancellation_window(order: dict) -> bool:
     """
     Returns True if the order is still within the 4-hour cancellation window.
     """
     # Get the ordered_at field
-    ordered_at = getattr(order, 'ordered_at', None)
+    ordered_at = order.get("ordered_at")
     
     if not ordered_at:
         return False
@@ -31,8 +31,8 @@ def check_cancellation_window(order: Order) -> bool:
         return False
 
 def evaluate_cancellation(state: WorkflowState) -> WorkflowState:
-    policy = POLICIES.get(state.policy_domain, {})
-    order = state.order
+    policy = POLICIES.get("cancellation", {})
+    order = state.get("order")
     
     if not order:
         decision = PolicyDecision(
@@ -48,7 +48,7 @@ def evaluate_cancellation(state: WorkflowState) -> WorkflowState:
             
         
         # Main business logic - use if / elif for clear priority
-        if order.status in ["shipped", "delivered"]:
+        if order.get("status") in ["shipped", "delivered"]:
             decision = PolicyDecision(
                 decision="denied",
                 recommended_action="explain_cannot_cancel_shipped_order",
@@ -57,7 +57,7 @@ def evaluate_cancellation(state: WorkflowState) -> WorkflowState:
                 policy_sources=[policy.get("policy_id", "cancellation_v1")]
             ).model_dump()
 
-        elif order.status != "processing":
+        elif order.get("status") != "processing":
             decision = PolicyDecision(
                 decision="denied",
                 recommended_action="cannot_cancel_non_processing_order",

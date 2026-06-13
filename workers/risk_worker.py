@@ -1,10 +1,10 @@
 from schemas import RiskDecision
+from state.workflow_state import WorkflowState
 
-
-def measure_risk(state: dict) -> dict:
-    workflow_type = state.workflow_type
-    policy_decision = state.policy_decision
-    order = state.order
+def measure_risk(state: WorkflowState) -> dict:
+    workflow_type = state.get("workflow_type")
+    policy_decision = state.get("policy_decision")
+    order = state.get("order")
 
     risk_flags = []
     escalation_required = False
@@ -23,7 +23,7 @@ def measure_risk(state: dict) -> dict:
         risk_flags.append("mising_package_claim")
         reason = "Missing package claim requires human review before refund or replacement"
     
-    if order is not None and order.total > 500:
+    if order is not None and order.get("total", 0) > 500:
         escalation_required = True
         risk_level = "high"
         risk_flags.append("high_value_order")

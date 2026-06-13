@@ -1,6 +1,6 @@
-from workflow_graph import workflow_app
+from graph.builder import workflow_app
 from schemas import SupportTicket
-from schemas import WorkflowState
+from state.workflow_state import WorkflowState
 
 EVAL_CASES = [
     {
@@ -144,7 +144,7 @@ EVAL_CASES = [
         "expected": {
             "workflow_type": "missing_package_request",
             "decision": "open_carrier_investigation",
-            "recommended_action": "carrier_investiation_open",
+            "recommended_action": "carrier_investigation_open",
         },
     },
     {
