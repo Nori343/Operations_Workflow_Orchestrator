@@ -102,7 +102,7 @@ POLICIES = {
     "cross_references": ["shipping"]
   },
 
-  "general_faqs": {
+  "faqs": {
     "policy_id": "general_faqs_v1",
     "version": "1.0",
     "last_updated": "2026-05-30",

@@ -143,10 +143,29 @@ EVAL_CASES = [
         "message": "My order PG-1001 never arrived",
         "expected": {
             "workflow_type": "missing_package_request",
-            "decision": "approved",
-            "recommended_action": "explain_missing_package_refund_approved",
+            "decision": "open_carrier_investigation",
+            "recommended_action": "carrier_investiation_open",
+        },
+    },
+    {
+        "name": "faqs_policy",
+        "message": "When was the company founded",
+        "expected": {
+            "workflow_type": "faqs_policy",
+            "decision": "explain_general_faqs_policy",
+            "recommended_action": "generate_response",
+        },
+    },
+    {
+        "name": "faqs_request",
+        "message": "I want to know the company's mission",
+        "expected": {
+            "workflow_type": "faqs_policy",
+            "decision": "explain_general_faqs_policy",
+            "recommended_action": "generate_response",
         },
     }
+
 ]
 
 

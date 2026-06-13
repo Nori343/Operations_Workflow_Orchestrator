@@ -64,10 +64,12 @@ class WorkflowState(BaseModel):
     order_id: Optional[str] = None
     workflow_type: Optional[str] = None
     policy_domain: Optional[str] = None
-    has_photo: bool = Field(default=False)
+    has_damage_photo: bool = Field(default=False)
+    photo_review_status: str| None = None
+    carrier_investigation_status: str|None = None
     
     # Worker outputs
-    order: Optional[Order] = Field(default=None)
+    order: Optional[dict] = Field(default=None)
     policy_decision: Optional[dict] = Field(default_factory=dict)
     risk_decision: Optional[dict] = Field(default_factory=dict)
     response: Optional[str] = None

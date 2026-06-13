@@ -51,8 +51,9 @@ Rules:
             """
         }])
     answer = response.choices[0].message.content
-    state.response = answer
-    return state
+    return {
+        "response": answer
+    }
     
 
 if __name__ == "__main__":

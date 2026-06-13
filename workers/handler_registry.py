@@ -16,7 +16,9 @@ HANDLER_REGISTRY = {
     "shipping_policy": evaluate_policy,
     "cancellation_policy": evaluate_policy,
     "damaged_items_policy": evaluate_policy,
-    "missing_package_policy": evaluate_policy
+    "missing_package_policy": evaluate_policy,
+    "faqs_policy": evaluate_policy,
+    "faqs_request": evaluate_policy
 }
 
 def get_handler(workflow_type:str|None):

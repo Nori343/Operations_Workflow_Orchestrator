@@ -40,12 +40,26 @@ def evaluate_damaged(state):
             reason="Damaged items must be reported within 7 days of delivery",
             policy_json=policy,
             ).model_dump()
-        elif not state.photo:
+        elif not state.has_damage_photo:
             decision= PolicyDecision(
             decision = "needs_more_info",     
             recommended_action="request_photo_of_damged_item",
             reason="Damaged items require a photo to be processed",
             next_steps=policy["customer_steps"],
+            policy_json=policy,
+            ).model_dump()
+        elif state.photo_review_status != "denied":
+            decision= PolicyDecision(
+            decision = "denied",     
+            recommended_action="explain_phoot_review_denied",
+            reason="Damaged photos are inspected by humans for authenticity",
+            policy_json=policy,
+            ).model_dump()
+        elif state.photo_review_status != "under_review":
+            decision= PolicyDecision(
+            decision = "under_review",     
+            recommended_action="explain_photo_under_review",
+            reason="Damaged photos are inspected by humans for authenticity",
             policy_json=policy,
             ).model_dump()
         else:

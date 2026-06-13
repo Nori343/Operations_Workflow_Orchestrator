@@ -8,7 +8,9 @@ ACTION_SIGNALS = [
     "my order",
     "need to",
     "my package",
-    "check"
+    "check",
+    "when will",
+    "how long until"
 ]
 
 POLICY_SIGNALS = [
@@ -16,14 +18,15 @@ POLICY_SIGNALS = [
     "how does",
     "do you allow",
     "policy",
-    "how long",
+    "how long does",
     "what is",
     "can you",
     "what's",
     "whats",
     "do you",
     "what happens",
-    "if"
+    "if",
+    "when was"
 ]
 
 DOMAIN_SIGNALS = {
@@ -41,7 +44,10 @@ DOMAIN_SIGNALS = {
         "eta",
         "where is",
         "ship",
-        "when"
+        "when will",
+        "was my package delivered",
+        "was my order delivered",
+        "be delivered"
     ],
     "cancellation": [
         "cancel",
@@ -52,6 +58,7 @@ DOMAIN_SIGNALS = {
         "broken",
         "cracked",
         "defective",
+        "damage"
     ],
     "missing_package": [
         "missing",
@@ -71,6 +78,14 @@ DOMAIN_SIGNALS = {
         "delivered but i never got it",
         "delivered but not received",
     ],
+    "faqs": [
+        "founded",
+        "founders",
+        "mission",
+        "headquarters",
+        "company located",
+        "based out of"
+    ]
 }
 
 def extract_order_id(message: str) -> str | None:
@@ -158,6 +173,8 @@ def detect_intent(text: str) -> str:
 def build_workflow_type(policy_domain: str, intent: str) -> str:
     if policy_domain == "unsupported":
         return "unsupported"
+    if policy_domain =="faqs":
+        return f"{policy_domain}_policy"
     if intent == "policy":
         return f"{policy_domain}_policy"
 
