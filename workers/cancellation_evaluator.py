@@ -1,5 +1,5 @@
+from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
-from schemas import PolicyDecision, Order
 from data.policy_store import POLICIES
 from datetime import datetime
 
@@ -30,7 +30,7 @@ def check_cancellation_window(order: dict) -> bool:
         print(f"Warning: Could not parse cancellation window for order {getattr(order, 'order_id', 'unknown')}: {e}")
         return False
 
-def evaluate_cancellation(state: WorkflowState) -> WorkflowState:
+def evaluate_cancellation(state: WorkflowState) -> dict:
     policy = POLICIES.get("cancellation", {})
     order = state.get("order")
     

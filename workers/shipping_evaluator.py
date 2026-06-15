@@ -1,9 +1,10 @@
-from schemas import WorkflowState, PolicyDecision
+from schemas import PolicyDecision
+from state.workflow_state import WorkflowState
 from data.policy_store import POLICIES
 
-def evaluate_shipping(state: WorkflowState) -> WorkflowState:   # ← Better name
-    policy = POLICIES.get(state.policy_domain, {})
-    order = state.order
+def evaluate_shipping(state: WorkflowState) -> dict:
+    policy = POLICIES.get(state.get("policy_domain"))
+    order = state.get("order")
     
     if order is None:
         decision = PolicyDecision(

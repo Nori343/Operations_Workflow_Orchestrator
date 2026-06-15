@@ -1,4 +1,4 @@
-from schemas import Order, PolicyDecision
+from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
 from datetime import datetime, timedelta
 from data.policy_store import POLICIES
@@ -20,7 +20,7 @@ def check_return_window(order:dict, window_days:int): #check window for returns 
             print(f"Warning: Could not parse return window for order {order.get('order_id')}: {e}")
             return False 
         
-def evaluate_returns_eligibility(order: Order, rules: dict) -> dict:
+def evaluate_returns_eligibility(order: dict, rules: dict) -> dict:
     """
     Evaluates return eligibility using policy rules.
     Returns structured decision data.
@@ -66,7 +66,7 @@ def evaluate_returns_eligibility(order: Order, rules: dict) -> dict:
     result["next_steps"] = rules.get("customer_steps", [])
     return result
 
-def evaluate_returns(state: WorkflowState) -> WorkflowState:
+def evaluate_returns(state: WorkflowState) -> dict:
     """Thin handler: loads policy and delegates decision to evaluator"""
     policy = POLICIES.get("returns", {})
     rules = policy.get("structured_rules", {})

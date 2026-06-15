@@ -51,46 +51,5 @@ class RiskDecision(BaseModel):
     risk_flags: list[str] = Field(default_factory=list) 
    # recommended_action: str
 
-class EvaluationResult(BaseModel):
-    passed: bool
-    issues: list[str]
-
-
-class WorkflowState(BaseModel):
-    ticket_id: Optional[str] = None
-    customer_message: str = ""
-    
-    requires_order: bool = Field(default=False)
-    order_id: Optional[str] = None
-    workflow_type: Optional[str] = None
-    policy_domain: Optional[str] = None
-    has_damage_photo: bool = Field(default=False)
-    photo_review_status: str| None = None
-    carrier_investigation_status: str|None = None
-    
-    # Worker outputs
-    order: Optional[dict] = Field(default=None)
-    policy_decision: Optional[dict] = Field(default_factory=dict)
-    risk_decision: Optional[dict] = Field(default_factory=dict)
-    response: Optional[str] = None
-    
-    # Planner fields
-    top_score: int = 0
-    candidate_domains: list[str] = Field(default_factory=list)
-    ambiguous: bool = False
-    matched_terms: list[str] = Field(default_factory=list)
-
-
-class WorkflowResult(BaseModel):
-    ticket_id: str
-    workflow_type: str
-    order_status: str
-    refund_eligible: bool
-    replacement_eligible: bool
-    recommended_action: str
-    escalation_required: bool
-    risk_level: str
-    draft_response: str
-    evaluation: EvaluationResult
 
 

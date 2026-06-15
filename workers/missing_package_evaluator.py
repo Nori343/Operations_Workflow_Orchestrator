@@ -1,6 +1,6 @@
 from data.policy_store import POLICIES
 from datetime import datetime, timedelta
-from schemas import Order, PolicyDecision
+from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
 
 
@@ -28,7 +28,7 @@ def business_days_since(start_date, end_date=None):
             count += 1
     return count
 
-def evaluate_missing_package(state:WorkflowState):
+def evaluate_missing_package(state: WorkflowState) -> dict:
     policy = POLICIES.get(state.get("policy_domain"), {})
     order = state.get("order")
     carrier_investigation_status = state.get("carrier_investigation_status")
