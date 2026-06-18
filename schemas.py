@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
 
 
 class SupportTicket(BaseModel):
-    ticket_id: str
+    conversation_id: str
     customer_message: str
 
 class Order(BaseModel):
@@ -35,6 +35,26 @@ class Order(BaseModel):
     is_international: bool = False
 
 
+class PlannerOutput(BaseModel):
+    """Structured output from the planner/classifier stage."""
+
+    order_id: str | None = None
+    policy_domain: str
+    intent: Literal["action", "policy"]
+    workflow_type: str
+    requires_order: bool = False
+    missing_fields: list[str] = Field(default_factory=list)
+    intent_confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float = Field(ge=0.0, le=1.0)
+    planner_source: str = "heuristic"
+    top_score: int = 0
+    second_score: int = 0
+    candidate_domains: list[str] = Field(default_factory=list)
+    ambiguous: bool = False
+    matched_terms: list[str] = Field(default_factory=list)
+    tiebreak_applied: bool = False
+
+
 class PolicyDecision(BaseModel):
     decision: str                    # "approved", "denied", "needs_more_info", "escalate", etc.
     recommended_action: str          # "start_return_process", "explain_policy", "request_photo", etc.
@@ -46,10 +66,10 @@ class PolicyDecision(BaseModel):
 
 class RiskDecision(BaseModel):
     escalation_required: bool
+    recommended_action: str
     risk_level: str
     reason: str
     risk_flags: list[str] = Field(default_factory=list) 
-   # recommended_action: str
 
 
 

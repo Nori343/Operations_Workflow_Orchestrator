@@ -1,11 +1,13 @@
-import json 
-from typing import Any
+from __future__ import annotations
+
+import json
 
 from openai import OpenAI
 
 from config.settings import settings
-
+from services.template_response import template_response
 from state.workflow_state import WorkflowState
+from langchain_core.messages import AIMessage
 
 _client: OpenAI | None = None
 
@@ -22,15 +24,29 @@ def _get_client()->OpenAI | None:
     return _client
 
 def build_response_context(state: WorkflowState) -> dict:
+    history = [
+        {"role": m.type, "content": str(m.content)}
+        for m in state.get("messages") or []
+        if not str(m.content).startswith("[")  # skip [planner] traces
+    ]
+
+    intent = state.get("intent")
+    is_policy_turn = intent == "policy" or (state.get("workflow_type") or "").endswith("_policy")
     return {
         "customer_message": state.get("customer_message"),
-        "order": state.get("order"),
+        "order": None if is_policy_turn else state.get("order"),
         "policy_decision": state.get("policy_decision"),
-        "risk_decision": state.get("risk_decision")
+        "risk_decision": state.get("risk_decision"),
+        "conversation_history":history
     }
 
+
 def craft_response(state: WorkflowState) -> dict:
-    summary = json.dumps(build_response_context(state), default=str, indent=2)
+    context = build_response_context(state)
+    client = _get_client()
+    if client is None:
+        return template_response(context)
+    summary = json.dumps(context, default=str, indent=2)
     system_prompt = """
 You are a customer response synthesizer.
 
@@ -39,37 +55,41 @@ Your job is to convert structured operational summary into a clear customer-faci
 Rules:
 - Use policy_decision.recommended_action and reason as authoritative operational guidance.
 - Follow policy_decision.recommended_action.
-- Use the order and customer_message only for relevant context.
+- Use the order, customer_message, and conversation_history only for relevant context.
 - Do not change or override the policy decision.
-- Only use risk_decision to alter the response if risk_decision.escalation_required is True. If so, mention that the case will be reviewed by support and use risk_decision.reason as the explanation.
+- Explain eligibility and next steps only. This system does not execute returns, cancellations, refunds, or investigations.
+- Do not claim any action has already been completed (no emails sent, labels issued, orders cancelled, or investigations opened).
+- Do not ask the customer to reply YES/NO to confirm an action this system will perform.
+- Only use risk_decision to alter the response if risk_decision.escalation_required is True. If so, state that the case requires review by support and use risk_decision.reason as the explanation.
 - Do not promise a refund unless explicitly allowed by the policy decision.
-- Do not claim any action has already been completed.
 - Do not invent policy details, timelines, discounts, credits, or escalation steps.
 - If more information is needed, clearly ask for the missing information.
-- If human review is required, explain that the case will be reviewed by support.
 - Keep the response concise and under 80 words.
 - Avoid generic closing phrases unless they add necessary information.
 - End the response after communicating the required operational next step.
 """
-    client = _get_client()
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{
-            "role": "system",
-            "content":system_prompt
-        },
-        {
-            "role":"user",
-            "content": f"""summary:{summary}
-            """
-        }],
-        temperature=0.2,
-        )
-    answer = (response.choices[0].message.content or "").strip()
-    return {
-        "response": answer
-    }
-    
+    try:
+        response = client.chat.completions.create(
+            model=settings.llm.model,
+            messages=[{
+                "role": "system",
+                "content":system_prompt
+            },
+            {
+                "role":"user",
+                "content": f"""summary:{summary}
+                """
+            }],
+            temperature=0.2,
+            )
+        answer = (response.choices[0].message.content or "").strip()
+        return {
+            "response": answer,
+            "messages": [AIMessage(content=answer)]
+        }
+    except Exception as e:
+        return {**template_response(context), "errors": [f"craft_response: {e}"]}
+        
 VALID_DOMAINS = {
     "returns",
     "shipping",
@@ -81,13 +101,7 @@ VALID_DOMAINS = {
 }
 VALID_INTENTS = {"action", "policy"}
 
-def classify_with_llm(
-    message: str,
-    *,
-    domain: str,
-    intent: str,
-    candidates: list[str],
-) -> dict[str, str] | None:
+def classify_with_llm(message: str, *, domain: str, intent: str, candidates: list[str]) -> dict[str, str] | None:
     client = _get_client()
     if client is None:
         return None
@@ -156,9 +170,6 @@ Use the heuristic_guess as a hint, not gospel — override if the message clearl
     except Exception:
         return None
     domain = answer.get("policy_domain")
-    intent = answer.get("intent")
-    if domain not in VALID_DOMAINS or intent not in VALID_INTENTS:
-        return None
     if domain != "unsupported" and domain not in allowed:
         return None
     if domain in ("faqs", "unsupported"):

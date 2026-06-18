@@ -39,7 +39,7 @@ def graph_builder(*, enable_checkpointing: bool = True):
     checkpointer = MemorySaver() if enable_checkpointing else None
     return graph.compile(checkpointer=checkpointer)
 
-workflow_app = graph_builder(enable_checkpointing=False) 
+workflow_app = graph_builder(enable_checkpointing=True) 
 
 
 # ====================== TEST ======================

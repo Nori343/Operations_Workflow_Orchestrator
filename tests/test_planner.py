@@ -24,9 +24,9 @@ class PlannerClassificationTests(unittest.TestCase):
         workflow_type: str,
     ) -> None:
         result = classify_workflow(message)
-        self.assertEqual(result["policy_domain"], policy_domain, msg=message)
-        self.assertEqual(result["intent"], intent, msg=message)
-        self.assertEqual(result["workflow_type"], workflow_type, msg=message)
+        self.assertEqual(result.policy_domain, policy_domain, msg=message)
+        self.assertEqual(result.intent, intent, msg=message)
+        self.assertEqual(result.workflow_type, workflow_type, msg=message)
 
     # --- Core eval-aligned paths ---
 
@@ -164,28 +164,28 @@ class PlannerClassificationTests(unittest.TestCase):
 
     def test_high_confidence_clear_return(self) -> None:
         result = classify_workflow("Can I return order PG-1001?")
-        self.assertGreaterEqual(result["confidence"], 0.67)
-        self.assertFalse(result["ambiguous"])
+        self.assertGreaterEqual(result.confidence, 0.67)
+        self.assertFalse(result.ambiguous)
 
     def test_unsupported_has_zero_confidence(self) -> None:
         result = classify_workflow("Can you reset my Netflix password?")
-        self.assertEqual(result["confidence"], 0.0)
-        self.assertEqual(result["policy_domain"], "unsupported")
+        self.assertEqual(result.confidence, 0.0)
+        self.assertEqual(result.policy_domain, "unsupported")
 
     def test_tiebreak_flag_set_on_overlap(self) -> None:
         result = classify_workflow("How do I cancel and get a refund?")
-        self.assertTrue(result["tiebreak_applied"])
-        self.assertEqual(result["policy_domain"], "cancellation")
-        self.assertFalse(result["ambiguous"])
+        self.assertTrue(result.tiebreak_applied)
+        self.assertEqual(result.policy_domain, "cancellation")
+        self.assertFalse(result.ambiguous)
 
     def test_order_id_extraction(self) -> None:
         result = classify_workflow("Can I return order PG-2048?")
-        self.assertEqual(result["order_id"], "PG-2048")
+        self.assertEqual(result.order_id, "PG-2048")
 
     def test_missing_order_id_on_action(self) -> None:
         result = classify_workflow("I want to return my order.")
-        self.assertEqual(result["missing_fields"], ["order_id"])
-        self.assertTrue(result["requires_order"])
+        self.assertEqual(result.missing_fields, ["order_id"])
+        self.assertTrue(result.requires_order)
 
 
 class ComputeConfidenceTests(unittest.TestCase):
@@ -227,11 +227,11 @@ class ComputeConfidenceTests(unittest.TestCase):
 
     def test_unsupported_opens_llm_gate(self) -> None:
         result = classify_workflow("Can you reset my Netflix password?")
-        self.assertLess(result["confidence"], self.THRESHOLD)
+        self.assertLess(result.confidence, self.THRESHOLD)
 
     def test_tiebreak_closes_llm_gate(self) -> None:
         result = classify_workflow("How do I cancel and get a refund?")
-        self.assertGreaterEqual(result["confidence"], self.THRESHOLD)
+        self.assertGreaterEqual(result.confidence, self.THRESHOLD)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from config.settings import settings
+from schemas import PlannerOutput
 from services.llm import classify_with_llm
 
 ACTION_SIGNALS = [
@@ -277,21 +278,69 @@ def build_workflow_type(policy_domain: str, intent: str) -> str:
     return f"{policy_domain}_request"
 
 
-def explain_classification(message: str) -> dict:
+def planner_output_to_state(result: PlannerOutput) -> dict:
+    """Convert PlannerOutput to graph state keys (used by planner node)."""
+    return result.model_dump()
+
+
+def try_continue_ticket(
+    *,
+    customer_message: str,
+    missing_fields: list[str],
+    workflow_type: str | None,
+    policy_domain: str | None,
+    intent: str | None,
+    confidence: float,
+    intent_confidence: float,
+    matched_terms: list[str],
+    candidate_domains: list[str],
+    top_score: int,
+    second_score: int,
+    tiebreak_applied: bool,
+) -> PlannerOutput | None:
+    """Resume a prior workflow when the customer supplies info we asked for."""
+    if missing_fields != ["order_id"]:
+        return None
+
+    order_id = extract_order_id(customer_message)
+    if not order_id:
+        return None
+
+    domain = policy_domain or "returns"
+    return PlannerOutput(
+        order_id=order_id,
+        policy_domain=domain,
+        intent=intent or "action",  # type: ignore[arg-type]
+        workflow_type=workflow_type or f"{domain}_request",
+        requires_order=True,
+        missing_fields=[],
+        intent_confidence=intent_confidence,
+        confidence=confidence,
+        planner_source="continuation",
+        top_score=top_score,
+        second_score=second_score,
+        candidate_domains=candidate_domains,
+        ambiguous=False,
+        matched_terms=matched_terms,
+        tiebreak_applied=tiebreak_applied,
+    )
+
+
+def explain_classification(message: str) -> PlannerOutput:
     result = classify_workflow(message)
     threshold = settings.planner_confidence_threshold
     print(f"message: {message}")
-    print(f"domain: {result['policy_domain']}  intent: {result['intent']}")
-    print(f"scores: top={result['top_score']} second={result['second_score']}")
+    print(f"domain: {result.policy_domain}  intent: {result.intent}")
+    print(f"scores: top={result.top_score} second={result.second_score}")
     print(
-        f"confidence: {result['confidence']}  "
-        f"threshold: {threshold}  source: {result['planner_source']}"
+        f"confidence: {result.confidence}  "
+        f"threshold: {threshold}  source: {result.planner_source}"
     )
-    print(f"terms: {result['matched_terms']}  tiebreak: {result['tiebreak_applied']}")
+    print(f"terms: {result.matched_terms}  tiebreak: {result.tiebreak_applied}")
     return result
 
 
-def classify_workflow(message: str) -> dict:
+def classify_workflow(message: str) -> PlannerOutput:
     normalized = message.lower()
     order_id = extract_order_id(message)
     domain_meta = detect_policy_domain(normalized)
@@ -316,23 +365,23 @@ def classify_workflow(message: str) -> dict:
             intent = llm_pick["intent"]
             source = "llm"
 
-    return {
-        "order_id": order_id,
-        "policy_domain": domain,
-        "intent": intent,
-        "workflow_type": build_workflow_type(domain, intent),
-        "requires_order": intent == "action",
-        "missing_fields": ["order_id"] if intent == "action" and not order_id else [],
-        "intent_confidence": intent_confidence,
-        "confidence": confidence,
-        "planner_source": source,
-        "top_score": domain_meta["top_score"],
-        "second_score": domain_meta["second_score"],
-        "candidate_domains": domain_meta["candidate_domains"],
-        "ambiguous": False if source == "llm" else domain_meta["ambiguous"],
-        "matched_terms": domain_meta["matched_terms"],
-        "tiebreak_applied": domain_meta["tiebreak_applied"],
-    }
+    return PlannerOutput(
+        order_id=order_id,
+        policy_domain=domain,
+        intent=intent,  # type: ignore[arg-type]
+        workflow_type=build_workflow_type(domain, intent),
+        requires_order=intent == "action",
+        missing_fields=["order_id"] if intent == "action" and not order_id else [],
+        intent_confidence=intent_confidence,
+        confidence=confidence,
+        planner_source=source,
+        top_score=domain_meta["top_score"],
+        second_score=domain_meta["second_score"],
+        candidate_domains=domain_meta["candidate_domains"],
+        ambiguous=False if source == "llm" else domain_meta["ambiguous"],
+        matched_terms=domain_meta["matched_terms"],
+        tiebreak_applied=domain_meta["tiebreak_applied"],
+    )
 
 
 
