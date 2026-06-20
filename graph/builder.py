@@ -9,7 +9,6 @@ from nodes.planner import planner_node
 from nodes.policy import policy_node
 from nodes.response import response_node
 from nodes.risk import risk_node
-from schemas import SupportTicket
 from state.workflow_state import WorkflowState
 
 # ====================== BUILD GRAPH ======================
@@ -39,15 +38,4 @@ def graph_builder(*, enable_checkpointing: bool = True):
     checkpointer = MemorySaver() if enable_checkpointing else None
     return graph.compile(checkpointer=checkpointer)
 
-workflow_app = graph_builder(enable_checkpointing=True) 
-
-
-# ====================== TEST ======================
-if __name__ == "__main__":
-    ticket = SupportTicket(
-        ticket_id="1",
-        customer_message="My order is XY-1002, Can I return it?"
-    )
-    
-    result = workflow_app.invoke(ticket.model_dump())
-    print(result)
+workflow_app = graph_builder(enable_checkpointing=True)

@@ -1,6 +1,7 @@
-from data.mock_orders import MOCK_ORDERS
+from data.mock_orders import get_mock_order
 from schemas import Order
 from state.workflow_state import WorkflowState
+
 
 def lookup_order(state: WorkflowState) -> dict:
     """Lookup order and attach it to state."""
@@ -9,11 +10,12 @@ def lookup_order(state: WorkflowState) -> dict:
     if not order_id:
         return {"order": None}
 
-    if order_id not in MOCK_ORDERS:
+    raw = get_mock_order(order_id)
+    if raw is None:
         return {"order": None}
 
     try:
-        order = Order.model_validate(MOCK_ORDERS[order_id])
+        order = Order.model_validate(raw)
         return {"order": order.model_dump(mode="json")}
     except Exception as e:
         return {

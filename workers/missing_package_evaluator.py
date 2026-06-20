@@ -1,3 +1,4 @@
+from config.clock import reference_now, reference_today
 from data.policy_store import POLICIES
 from datetime import datetime, timedelta
 from schemas import PolicyDecision
@@ -14,12 +15,12 @@ def check_missing_window(order: dict, window_days: int) -> bool:
         else:
             dt = delivered_at
         deadline = dt.date() + timedelta(days=window_days)
-        return datetime.now().date() > deadline
+        return reference_today() > deadline
     except (ValueError, TypeError, AttributeError):
         return False
     
 def business_days_since(start_date, end_date=None):
-    end_date = end_date or datetime.now().date()
+    end_date = end_date or reference_today()
     count = 0
     current = start_date
     while current < end_date:
@@ -30,6 +31,7 @@ def business_days_since(start_date, end_date=None):
 
 def evaluate_missing_package(state: WorkflowState) -> dict:
     policy = POLICIES.get(state.get("policy_domain"), {})
+    structured_rules = policy.get("structured_rules", {})
     order = state.get("order")
     carrier_investigation_status = state.get("carrier_investigation_status")
     if not order:
@@ -39,17 +41,19 @@ def evaluate_missing_package(state: WorkflowState) -> dict:
         reason="To process request a valid order id is needed"
         ).model_dump()
     else:
-        if not check_missing_window(order, policy["structured_rules"]["wait_days_after_delivery_scan"]):
+        if not check_missing_window(
+            order, structured_rules.get("wait_days_after_delivery_scan", 2)
+        ):
             decision = PolicyDecision(
             decision="wait_to_escalate",     
             recommended_action="pending_customer_wait",
-            next_steps=policy["customer_steps"],
+            next_steps=policy.get("customer_steps", []),
             reason="Before carrier investigation wait two days after delivery scan and search for package"
             ).model_dump()
         elif carrier_investigation_status == 'approved':
             decision = PolicyDecision(
             decision="approved",     
-            recommended_action="explain_return/replacement_approved",
+            recommended_action="explain_return_or_replacement_approved",
             reason="Local and carrier investigation failed to find package"
             ).model_dump()
         elif carrier_investigation_status == 'pending':
@@ -68,12 +72,15 @@ def evaluate_missing_package(state: WorkflowState) -> dict:
             decision = PolicyDecision(
             decision="open_carrier_investigation",     
             recommended_action="carrier_investigation_open",
-            reason=f"wait {policy["structured_rules"]["investigation_days"]} days for company to investigate carrier"
+            reason=(
+                f"wait {structured_rules.get('investigation_days', '3-5')} days "
+                "for company to investigate carrier"
+            )
             ).model_dump()
         else:
             decision = PolicyDecision(
             decision="approved",     
-            recommended_action="explain_return/replacement_approved",
+            recommended_action="explain_return_or_replacement_approved",
             reason="Local and carrier investigation failed to find package"
             ).model_dump()
    

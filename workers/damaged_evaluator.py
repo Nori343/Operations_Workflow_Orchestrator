@@ -1,5 +1,7 @@
-from data.policy_store import POLICIES
 from datetime import datetime, timedelta
+
+from config.clock import reference_today
+from data.policy_store import POLICIES
 from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
 
@@ -14,12 +16,13 @@ def check_damaged_window(order: dict, window_days: int) -> bool:
         else:
             dt = delivered_at
         deadline = dt.date() + timedelta(days=window_days)
-        return datetime.now().date() <= deadline
+        return reference_today() <= deadline
     except (ValueError, TypeError, AttributeError):
         return False
     
 def evaluate_damaged(state: WorkflowState) -> dict:
-    policy = POLICIES.get(state.get("policy_domain"))
+    policy = POLICIES.get(state.get("policy_domain"), {})
+    structured_rules = policy.get("structured_rules", {})
     order = state.get("order")
     if not order:
         decision = PolicyDecision(
@@ -36,7 +39,7 @@ def evaluate_damaged(state: WorkflowState) -> dict:
             policy_json=policy,
             ).model_dump()
 
-        elif not check_damaged_window(order, policy["structured_rules"]["report_window_days"]):
+        elif not check_damaged_window(order, structured_rules.get("report_window_days", 7)):
             decision = PolicyDecision(
             decision="denied",     
             recommended_action="explain_outside_damaged_report_window",
@@ -46,15 +49,15 @@ def evaluate_damaged(state: WorkflowState) -> dict:
         elif not state.get("has_damage_photo"):
             decision= PolicyDecision(
             decision = "needs_more_info",     
-            recommended_action="request_photo_of_damged_item",
+            recommended_action="request_photo_of_damaged_item",
             reason="Damaged items require a photo to be processed",
-            next_steps=policy["customer_steps"],
+            next_steps=policy.get("customer_steps", []),
             policy_json=policy,
             ).model_dump()
         elif state.get("photo_review_status") == "denied":
             decision= PolicyDecision(
             decision = "denied",     
-            recommended_action="explain_phoot_review_denied",
+            recommended_action="explain_photo_review_denied",
             reason="Damaged photos are inspected by humans for authenticity",
             policy_json=policy,
             ).model_dump()
@@ -68,8 +71,8 @@ def evaluate_damaged(state: WorkflowState) -> dict:
         else:
             decision= PolicyDecision(
             decision="approved",     
-            recommended_action="explain_damged_item_return_approved",
-            reason="Damage items eligible for return"
+            recommended_action="explain_damaged_item_return_approved",
+            reason="Damaged items eligible for return"
             ).model_dump()
     return {
         "policy_decision": decision

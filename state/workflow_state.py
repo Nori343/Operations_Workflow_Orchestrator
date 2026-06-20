@@ -8,7 +8,6 @@ from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
 class WorkflowState(TypedDict, total=False):
-    ticket_id: str
     customer_message: str
     # Planner
     planner_source: str | None

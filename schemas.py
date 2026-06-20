@@ -69,7 +69,23 @@ class RiskDecision(BaseModel):
     recommended_action: str
     risk_level: str
     reason: str
-    risk_flags: list[str] = Field(default_factory=list) 
+    risk_flags: list[str] = Field(default_factory=list)
 
 
+class TicketDebugInfo(BaseModel):
+    policy_decision: dict | None = None
+    risk_decision: dict | None = None
+    node_trace: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
+class TicketResponse(BaseModel):
+    conversation_id: str
+    response: str
+    missing_fields: list[str] = Field(default_factory=list)
+    order_id: str | None = None
+    escalation_required: bool = False
+    workflow_type: str | None = None
+    planner_source: str | None = None
+    debug: TicketDebugInfo | None = None
 

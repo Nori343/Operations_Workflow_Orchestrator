@@ -1,5 +1,6 @@
 from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
+from config.clock import reference_now
 from data.policy_store import POLICIES
 from datetime import datetime
 
@@ -16,12 +17,11 @@ def check_cancellation_window(order: dict) -> bool:
     try:
         # Parse the exact format from your mock orders: "2026-04-10T09:00:00"
         if isinstance(ordered_at, str):
-            dt = datetime.strptime(ordered_at, "%Y-%m-%dT%H:%M:%S")
+            dt = datetime.fromisoformat(ordered_at.replace("Z", "+00:00")[:19])
         else:
             dt = ordered_at
 
-        # Calculate hours since order was placed
-        now = datetime.now()
+        now = reference_now()
         hours_since_placed = (now - dt).total_seconds() / 3600
         # Check against 4 hour policy window
         return hours_since_placed <= 4

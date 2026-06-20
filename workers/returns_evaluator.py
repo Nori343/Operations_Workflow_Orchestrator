@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
+
+from config.clock import reference_today
+from data.policy_store import POLICIES
 from schemas import PolicyDecision
 from state.workflow_state import WorkflowState
-from datetime import datetime, timedelta
-from data.policy_store import POLICIES
 
 def check_return_window(order:dict, window_days:int): #check window for returns for an order
         delivered_at = order.get("delivered_at")
@@ -12,7 +14,7 @@ def check_return_window(order:dict, window_days:int): #check window for returns 
                 dt = datetime.fromisoformat(delivered_at)
             else:
                 dt = delivered_at
-            now = datetime.now().date()
+            now = reference_today()
             return_deadline = dt + timedelta(days=window_days)
             is_within_return_window = now <= return_deadline.date()
             return is_within_return_window
@@ -33,12 +35,17 @@ def evaluate_returns_eligibility(order: dict, rules: dict) -> dict:
         "next_steps": []
     }
 
+    denial_reasons = rules.get("denial_reasons", {})
+
     # 1. Status Check
     if order.get("status") in rules.get("non_returnable_statuses", []):
         result.update({
             "decision": "denied",
             "recommended_action": "explain_non_returnable_status",
-            "reason": rules["denial_reasons"]["invalid_status"]
+            "reason": denial_reasons.get(
+                "invalid_status",
+                "This order cannot be returned in its current status.",
+            ),
         })
         return result
 
@@ -47,18 +54,27 @@ def evaluate_returns_eligibility(order: dict, rules: dict) -> dict:
         result.update({
             "decision": "denied",
             "recommended_action": "explain_non_eligible_items",
-            "reason": rules["denial_reasons"]["non_returnable_item"]
+            "reason": denial_reasons.get(
+                "non_returnable_item",
+                "Clearance and custom orders are not eligible for return.",
+            ),
         })
         return result
 
     # 3. Return Window Check
-    window_days = rules["premium_window_days"] if order.get("is_premium_member") else rules["standard_window_days"]
-    
+    if order.get("is_premium_member"):
+        window_days = rules.get("premium_window_days", 45)
+    else:
+        window_days = rules.get("standard_window_days", 30)
+
     if not check_return_window(order, window_days):
         result.update({
             "decision": "denied",
             "recommended_action": "explain_past_return_window",
-            "reason": rules["denial_reasons"]["past_return_window"]
+            "reason": denial_reasons.get(
+                "past_return_window",
+                "The return window has expired.",
+            ),
         })
         return result
 

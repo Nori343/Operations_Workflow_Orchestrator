@@ -98,14 +98,14 @@ def build_template_response(context: dict[str, Any]) -> str:
             f"To evaluate your damage claim for order {oid}, please provide clear photos "
             "of the item and packaging."
         ),
-        "explain_phoot_review_denied": (
+        "explain_photo_review_denied": (
             f"We could not verify the damage photos for order {oid}. "
             "Please contact support if you believe this is an error."
         ),
         "explain_photo_under_review": (
             f"Your damage photos for order {oid} are under review by support."
         ),
-        "explain_damged_item_return_approved": (
+        "explain_damaged_item_return_approved": (
             f"Your damage claim for order {oid} is approved under our policy. "
             "Contact support for return or replacement next steps."
         ),
